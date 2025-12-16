@@ -2,7 +2,7 @@ version: v1
 # Job name 
 name: "example-job"
 
-labels: ["disagg", "example", "schema", "fastfastfast"
+labels: ["disagg", "example", "schema", "fastfastfast"]
 
 # Model configuration
 model:
