@@ -1,0 +1,46 @@
+version: v1
+# Job name 
+name: "example-job"
+
+labels: ["disagg", "example", "schema", "fastfastfast"
+
+# Model configuration
+model:
+  path: "deepseek-ai/DeepSeek-V3.2" # huggingface path
+  container: "lmsysorg/sglang:v0.5.5.post2"  # pointer to sglang lmsysorg dockerhub
+
+# Resource allocation
+resources:
+  gpu_type: "l40s"   # gpu type
+  agg_nodes: 1       # Total nodes for combined workers. Can specify multinode this way
+  agg_workers: 1     # Number of aggregated worker processes. Can specify multinode this way
+  gpus_per_node: 8   # GPUs per node (typically 4 for GB200, 8 for H100, etc)
+
+# Backend configuration
+backend:
+  # These are exported before running the prefill command
+  aggregated_environment:
+    TORCH_DISTRIBUTED_DEFAULT_TIMEOUT: "1800"
+    PYTHONUNBUFFERED: "1"
+    SGLANG_ENABLE_FLASHINFER_GEMM: "1"
+
+  # SGLang configuration flags
+  # All keys must use dashes (kebab-case), not underscores
+  # This matches the upstream sglang feature (--config <file.yaml>)
+  sglang_config:
+    aggregated:
+      served-model-name: "deepseek-ai/DeepSeek-R1"
+      model-path: "/model/"
+      trust-remote-code: true
+      kv-cache-dtype: "fp8_e4m3"
+      tensor-parallel-size: 8
+      quantization: fp8
+      disaggregation-mode: "prefill"
+
+# OPTIONAL benchmark/accuracy configuration
+benchmark:
+  type: "sa-bench"           # sa-bench, mmlu, gpqa, etc
+  isl: 1024                  # Input sequence length
+  osl: 1024                  # Output sequence length
+  concurrencies: [256, 512]  # Concurrency levels to test
+  req_rate: "inf"            # Request rate 

@@ -1,0 +1,62 @@
+version: v1
+# Job name 
+name: "example-job"
+
+labels: ["disagg", "example", "schema", "fastfastfast"
+
+# Model configuration
+model:
+  path: "deepseek-ai/DeepSeek-V3.2" # huggingface path
+  container: "lmsysorg/sglang:v0.5.5.post2"  # pointer to sglang lmsysorg dockerhub
+
+# Resource allocation
+resources:
+  gpu_type: "gb200"  # gb200, h100 (used for GPU-specific optimizations)
+  # Disaggregated mode: separate prefill and decode workers
+  prefill_nodes: 1     # Number of nodes for prefill workers
+  decode_nodes: 1      # Number of nodes for decode workers
+  prefill_workers: 1   # Number of prefill worker processes
+  decode_workers: 1    # Number of decode worker processes
+
+# Backend configuration
+backend:
+  # These are exported before running the prefill command
+  prefill_environment:
+    TORCH_DISTRIBUTED_DEFAULT_TIMEOUT: "1800"
+    PYTHONUNBUFFERED: "1"
+    SGLANG_ENABLE_FLASHINFER_GEMM: "1"
+
+  # These are exported before running the decode command
+  decode_environment:
+    TORCH_DISTRIBUTED_DEFAULT_TIMEOUT: "1800"
+    PYTHONUNBUFFERED: "1"
+    SGLANG_ENABLE_FLASHINFER_GEMM: "1"
+
+  # SGLang configuration flags
+  # All keys must use dashes (kebab-case), not underscores
+  # This matches the upstream sglang feature (--config <file.yaml>)
+  sglang_config:
+    prefill:
+      served-model-name: "deepseek-ai/DeepSeek-R1"
+      model-path: "/model/"
+      trust-remote-code: true
+      kv-cache-dtype: "fp8_e4m3"
+      tensor-parallel-size: 4
+      quantization: fp8
+      disaggregation-mode: "prefill"
+
+    decode:
+      served-model-name: "deepseek-ai/DeepSeek-R1"
+      model-path: "/model/"
+      trust-remote-code: true
+      kv-cache-dtype: "fp8_e4m3"
+      disaggregation-mode: "decode"
+      tensor-parallel-size: 4
+
+# OPTIONAL benchmark/accuracy configuration
+benchmark:
+  type: "sa-bench"           # sa-bench, mmlu, gpqa, etc
+  isl: 1024                  # Input sequence length
+  osl: 1024                  # Output sequence length
+  concurrencies: [256, 512]  # Concurrency levels to test
+  req_rate: "inf"            # Request rate 
